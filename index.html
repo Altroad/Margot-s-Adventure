@@ -315,6 +315,15 @@
 
   .pad-group { display: flex; gap: 10px; }
 
+  /* iOS raises a copy/lookup callout when a control is held down, which is
+     exactly what these buttons are for. Suppress it on anything holdable. */
+  .pad, .hud button, .stage, canvas {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .pad svg { pointer-events: none; }   /* long-press on the glyph = "Save Image" */
+
   .pad {
     pointer-events: auto;
     touch-action: none;
