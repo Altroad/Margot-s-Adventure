@@ -575,7 +575,9 @@
       if (p.taken) continue;
       p.bob += dt * 2;
       const py = p.y + (p.kind === 'balloon' ? Math.sin(p.bob) * 4 : 0);
-      if (Math.abs(p.x - player.x) < 22 && Math.abs(py - (player.y - PH / 2)) < 30) {
+      // generous on purpose: the balloons need a jump, but this is meant to be
+      // an easy game, not a precision one
+      if (Math.abs(p.x - player.x) < 28 && Math.abs(py - (player.y - PH / 2)) < 34) {
         p.taken = true;
         Sound.collect();
         puff(p.x, py, 8, 'rgba(242,180,65,0.8)');
@@ -636,7 +638,7 @@
     if (t > 1.5 && t < 1.6) Sound.ring();
     if (t > 2.3 && t < 2.4) Sound.ring();
     if (t > 3.1 && t < 3.2) {
-      float(PHONE_X + 30, GROUND_Y - 108, '“Margot! Finally.”', '#5C8F4E');
+      float(PHONE_X + 30, GROUND_Y - 108, '“Hola Margot!”', '#5C8F4E');
       Sound.win();
     }
     if (t > 4.6) finish();
