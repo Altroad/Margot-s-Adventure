@@ -152,20 +152,24 @@
 
   /* ---------- Screens ---------- */
 
+  /* Fixed to the viewport, not the 16:9 stage — in portrait the stage
+     collapses to a short letterbox and this content would be clipped. */
   .screen {
-    position: absolute;
+    position: fixed;
     inset: 0;
-    display: grid;
-    place-items: center;
+    display: flex;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     text-align: center;
     padding: clamp(16px, 4vw, 46px);
-    background: rgba(255, 246, 233, 0.93);
+    background: rgba(255, 246, 233, 0.96);
     backdrop-filter: blur(6px);
-    z-index: 3;
+    z-index: 10;
   }
   .screen[hidden] { display: none; }
 
   .screen-inner {
+    margin: auto;            /* centres, and still scrolls when it can't fit */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -293,15 +297,18 @@
 
   /* ---------- Touch ---------- */
 
+  /* Pinned to the viewport so the pads stay thumb-reachable even when the
+     stage itself is a short letterbox in portrait. */
   .touch {
-    position: absolute;
+    position: fixed;
     inset: auto 0 0 0;
     display: none;
     justify-content: space-between;
     align-items: flex-end;
     padding: clamp(10px, 3vw, 20px);
+    padding-bottom: max(clamp(10px, 3vw, 20px), env(safe-area-inset-bottom));
     gap: 12px;
-    z-index: 2;
+    z-index: 5;
     pointer-events: none;
   }
   body[data-touch="1"] .touch { display: flex; }
@@ -339,6 +346,31 @@
     pointer-events: none;
   }
   @media (max-height: 580px) { .credit { display: none; } }
+  body[data-touch="1"] .credit { display: none; }   /* keys are irrelevant on touch */
+
+  /* Keyboard legend is meaningless on touch; a rotate nudge is not. */
+  body[data-touch="1"] .keys { display: none; }
+  .rotate-hint { display: none; }
+
+  /* In portrait the 16:9 stage is a short letterbox with dead space above it.
+     Lift the HUD out of the stage into that space rather than letting it wrap
+     onto two rows and eat a quarter of the play area. */
+  @media (orientation: portrait) {
+    body[data-touch="1"] .rotate-hint { display: block; }
+
+    body[data-touch="1"] .hud {
+      position: fixed;
+      top: max(8px, env(safe-area-inset-top));
+      left: 0;
+      right: 0;
+      padding: 8px 12px;
+      font-size: 13px;
+      background: none;
+      flex-wrap: wrap;
+      z-index: 6;
+    }
+    body[data-touch="1"] .hud-right { margin-left: auto; }
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .screen-inner { animation: none; }
@@ -380,6 +412,7 @@
         <span><kbd>R</kbd> restart</span>
         <span><kbd>M</kbd> sound</span>
       </div>
+      <p class="lede rotate-hint">Turn your phone sideways for a bigger view.</p>
       <p class="lede" id="bestNote" hidden></p>
     </div>
   </div>
