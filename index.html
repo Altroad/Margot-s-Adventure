@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Margot's Adventure</title>
+<meta name="description" content="Margot has been trying to call Daniel all day. A 16 km run, a street of magpies, back-to-back meetings and a birthday party are in the way.">
+<meta property="og:title" content="Margot's Adventure">
+<meta property="og:description" content="Margot has been trying to call Daniel all day. A 16 km run, a street of magpies, back-to-back meetings and a birthday party are in the way.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#FFF6E9">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232E3A59'/%3E%3Cpath d='M11 8h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23FFF6E9'/%3E%3Ccircle cx='16' cy='21' r='1.6' fill='%232E3A59'/%3E%3Crect x='11.5' y='10.5' width='9' height='7' rx='1' fill='%23F2B441'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Karla:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --ink:    #2A2440;
+    --ink-2:  #6B6285;
+    --paper:  #FFF6E9;
+    --coral:  #F0567A;
+    --teams:  #5B5FC7;
+    --leaf:   #5C8F4E;
+    --gold:   #F2B441;
+    --navy:   #2E3A59;
+
+    --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+    --ui: "Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; height: 100%; }
+
+  body {
+    background: #E9E2D6;
+    background-image: radial-gradient(ellipse 110% 90% at 50% 0%, #FFF6E9 0%, #E3DACB 70%);
+    color: var(--ink);
+    font-family: var(--ui);
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    padding: clamp(8px, 2vmin, 22px);
+    overflow: hidden;
+  }
+
+  /* ---------- Stage ---------- */
+
+  .stage {
+    position: relative;
+    width: min(96vw, calc(86dvh * 16 / 9), 1180px);
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #BFE4F5;
+    box-shadow:
+      0 0 0 1px rgba(42, 36, 64, 0.1),
+      0 26px 60px -22px rgba(42, 36, 64, 0.45);
+  }
+
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  /* ---------- HUD ---------- */
+
+  .hud {
+    position: absolute;
+    inset: 0 0 auto 0;
+    display: flex;
+    align-items: flex-start;
+    gap: clamp(8px, 1.6vw, 18px);
+    padding: clamp(8px, 1.5vw, 15px) clamp(10px, 1.8vw, 18px);
+    pointer-events: none;
+    font-size: clamp(10px, 1.22vw, 14px);
+    opacity: 0;
+    transition: opacity .3s ease;
+  }
+  .hud[data-on="1"] { opacity: 1; }
+
+  .tasks { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  .task {
+    display: inline-flex;
+    align-items: center;
+    gap: .45em;
+    background: rgba(255, 246, 233, 0.82);
+    border: 1px solid rgba(42, 36, 64, 0.12);
+    border-radius: 999px;
+    padding: .3em .75em .3em .5em;
+    color: var(--ink-2);
+    font-weight: 500;
+    white-space: nowrap;
+    backdrop-filter: blur(3px);
+    transition: color .3s, background .3s, border-color .3s;
+  }
+  .task .box {
+    width: 1.02em;
+    height: 1.02em;
+    border-radius: 50%;
+    border: 1.5px solid rgba(42, 36, 64, 0.28);
+    display: grid;
+    place-items: center;
+    flex: none;
+    transition: background .3s, border-color .3s;
+  }
+  .task .box svg { width: .7em; height: .7em; opacity: 0; transition: opacity .25s; }
+  .task .box svg path { stroke: var(--paper); stroke-width: 3.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  .task[data-done="1"] { color: var(--ink); background: rgba(255, 246, 233, 0.95); border-color: rgba(92, 143, 78, 0.5); }
+  .task[data-done="1"] .box { background: var(--leaf); border-color: var(--leaf); }
+  .task[data-done="1"] .box svg { opacity: 1; }
+  .task[data-active="1"] { border-color: var(--coral); color: var(--ink); }
+
+  .task .sub { font-variant-numeric: tabular-nums; color: var(--coral); font-weight: 700; }
+  .task[data-done="1"] .sub { color: var(--leaf); }
+
+  .hud-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+  }
+
+  .clock {
+    background: rgba(255, 246, 233, 0.82);
+    border: 1px solid rgba(42, 36, 64, 0.12);
+    border-radius: 999px;
+    padding: .3em .8em;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--ink);
+    backdrop-filter: blur(3px);
+  }
+  .clock .dim { color: var(--ink-2); font-weight: 400; }
+
+  .hud button {
+    pointer-events: auto;
+    font: inherit;
+    font-size: inherit;
+    font-weight: 500;
+    color: var(--ink-2);
+    background: rgba(255, 246, 233, 0.82);
+    border: 1px solid rgba(42, 36, 64, 0.12);
+    border-radius: 999px;
+    padding: .3em .8em;
+    cursor: pointer;
+    backdrop-filter: blur(3px);
+    transition: color .15s, border-color .15s;
+  }
+  .hud button:hover { color: var(--ink); border-color: rgba(42, 36, 64, 0.34); }
+  .hud button:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+
+  /* ---------- Screens ---------- */
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: clamp(16px, 4vw, 46px);
+    background: rgba(255, 246, 233, 0.93);
+    backdrop-filter: blur(6px);
+    z-index: 3;
+  }
+  .screen[hidden] { display: none; }
+
+  .screen-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(9px, 1.7vh, 18px);
+    max-width: 36em;
+    animation: rise .45s cubic-bezier(.2, .7, .3, 1) both;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(9px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .eyebrow {
+    font-size: clamp(9px, 1.1vw, 12px);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--coral);
+    font-weight: 700;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(30px, 6.4vw, 66px);
+    line-height: .95;
+    letter-spacing: -.025em;
+    margin: 0;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+
+  .lede {
+    margin: 0;
+    max-width: 32em;
+    font-size: clamp(11.5px, 1.55vw, 16px);
+    line-height: 1.62;
+    color: var(--ink-2);
+    text-wrap: pretty;
+  }
+
+  .btn {
+    font-family: var(--ui);
+    font-weight: 700;
+    font-size: clamp(13px, 1.65vw, 17px);
+    color: var(--paper);
+    background: var(--coral);
+    border: none;
+    border-radius: 999px;
+    padding: .72em 2.2em;
+    cursor: pointer;
+    box-shadow: 0 8px 20px -8px rgba(240, 86, 122, 0.9);
+    transition: transform .14s cubic-bezier(.2,.7,.3,1), box-shadow .2s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 12px 26px -8px rgba(240, 86, 122, 0.95); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink);
+    border: 1.5px solid rgba(42, 36, 64, 0.24);
+    box-shadow: none;
+    font-weight: 500;
+  }
+  .btn-ghost:hover { background: rgba(42, 36, 64, 0.05); box-shadow: none; transform: none; }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  .agenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    font-size: clamp(10px, 1.2vw, 13px);
+  }
+  .agenda span {
+    background: rgba(42, 36, 64, 0.055);
+    border-radius: 7px;
+    padding: .4em .75em;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+
+  .keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(8px, 1.5vw, 16px);
+    justify-content: center;
+    font-size: clamp(10px, 1.2vw, 13px);
+    color: var(--ink-2);
+  }
+  .keys span { display: inline-flex; align-items: center; gap: .45em; }
+  kbd {
+    font-family: var(--ui);
+    font-size: .92em;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid rgba(42, 36, 64, 0.2);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    padding: .16em .5em;
+    line-height: 1.3;
+  }
+
+  .stat-row { display: flex; gap: clamp(18px, 4vw, 44px); justify-content: center; flex-wrap: wrap; }
+  .stat { display: flex; flex-direction: column; gap: 1px; }
+  .stat .k {
+    font-size: clamp(9px, 1vw, 11px);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-weight: 700;
+  }
+  .stat .v {
+    font-family: var(--display);
+    font-size: clamp(20px, 3.2vw, 32px);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .v.coral { color: var(--coral); }
+
+  /* ---------- Touch ---------- */
+
+  .touch {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: none;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: clamp(10px, 3vw, 20px);
+    gap: 12px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  body[data-touch="1"] .touch { display: flex; }
+
+  .pad-group { display: flex; gap: 10px; }
+
+  .pad {
+    pointer-events: auto;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    width: clamp(50px, 11.5vw, 70px);
+    height: clamp(50px, 11.5vw, 70px);
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 246, 233, 0.78);
+    box-shadow: 0 4px 14px -4px rgba(42, 36, 64, 0.4);
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+    backdrop-filter: blur(4px);
+    transition: background .1s, transform .1s;
+  }
+  .pad[data-down="1"] { background: var(--coral); color: var(--paper); transform: scale(.93); }
+  .pad svg { width: 42%; height: 42%; fill: currentColor; }
+
+  .credit {
+    position: fixed;
+    bottom: 7px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(42, 36, 64, 0.4);
+    pointer-events: none;
+  }
+  @media (max-height: 580px) { .credit { display: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .screen-inner { animation: none; }
+    .btn, .pad, .task { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <canvas id="game" aria-label="Margot's Adventure game"></canvas>
+
+  <div class="hud" id="hud">
+    <div class="tasks" id="tasks"></div>
+    <div class="hud-right">
+      <span class="clock" id="clock">0:00</span>
+      <button id="btnSound" type="button" title="Toggle sound (M)">Sound on</button>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div class="screen" id="screenTitle">
+    <div class="screen-inner">
+      <span class="eyebrow">One day. One phone call.</span>
+      <h1>Margot's Adventure</h1>
+      <p class="lede">Margot has been trying to call Daniel since breakfast. She has not had a single free minute. Get her through the day and to the phone.</p>
+      <div class="agenda">
+        <span>16&nbsp;km before work</span>
+        <span>Magpie season</span>
+        <span>Back-to-back meetings</span>
+        <span>A birthday party to pull off</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btnStart" type="button">Start the day</button>
+      </div>
+      <div class="keys">
+        <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> move</span>
+        <span><kbd>Space</kbd> jump</span>
+        <span><kbd>R</kbd> restart</span>
+        <span><kbd>M</kbd> sound</span>
+      </div>
+      <p class="lede" id="bestNote" hidden></p>
+    </div>
+  </div>
+
+  <!-- Win -->
+  <div class="screen" id="screenWin" hidden>
+    <div class="screen-inner">
+      <span class="eyebrow">Connected &mdash; 6:41 pm</span>
+      <h1>&ldquo;Hi Daniel.&rdquo;</h1>
+      <p class="lede" id="winNote">She got there. Sixteen kilometres, five meetings, one birthday party and a great many magpies later.</p>
+      <div class="stat-row">
+        <span class="stat"><span class="k">Her day took</span><span class="v coral" id="winTime">0:00</span></span>
+        <span class="stat"><span class="k">Best</span><span class="v" id="winBest">0:00</span></span>
+        <span class="stat"><span class="k">Stumbles</span><span class="v" id="winStumbles">0</span></span>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btnAgain" type="button">Do it all again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="touch" id="touch">
+    <div class="pad-group">
+      <button class="pad" id="padLeft" type="button" aria-label="Move left">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3 6 12l9.5 9V3z"/></svg>
+      </button>
+      <button class="pad" id="padRight" type="button" aria-label="Move right">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3 18 12l-9.5 9V3z"/></svg>
+      </button>
+    </div>
+    <button class="pad" id="padJump" type="button" aria-label="Jump">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 13h5.5v8h7v-8H21L12 3z"/></svg>
+    </button>
+  </div>
+</div>
+
+<p class="credit">Arrow keys or WASD to move &middot; Space to jump</p>
+
+<script src="game.js"></script>
+</body>
+</html>
