@@ -26,7 +26,7 @@
   const STUMBLE_PENALTY = 2;     // seconds added to the day
   const INVULN          = 1.2;
 
-  const PW = 19, PH = 34;        // Margot's collision box
+  const PW = 16, PH = 38;        // Margot's collision box
 
   // ---------------------------------------------------------------- level
 
@@ -513,7 +513,7 @@
 
   function updateHurdles() {
     if (player.invulnT > 0) return;
-    const pb = { x: player.x - PW / 2 + 3, y: player.y - PH, w: PW - 6, h: PH };
+    const pb = { x: player.x - PW / 2 + 1.5, y: player.y - PH, w: PW - 3, h: PH };
     for (const h of HURDLES) {
       const sz = HURDLE_SIZE[h.kind];
       const hb = { x: h.x - sz.hit[0] / 2, y: GROUND_Y - sz.hit[1], w: sz.hit[0], h: sz.hit[1] };
@@ -1423,7 +1423,7 @@
     // shadow
     ctx.fillStyle = 'rgba(42,36,64,0.2)';
     ctx.beginPath();
-    ctx.ellipse(sx, GROUND_Y - 1, 11, 3.5, 0, 0, 6.3);
+    ctx.ellipse(sx, GROUND_Y - 1, 9.5, 3.2, 0, 0, 6.3);
     ctx.fill();
 
     ctx.save();
@@ -1433,150 +1433,195 @@
     if (stag) ctx.rotate(-0.25 * player.facing);
     ctx.scale(player.facing, 1);
 
-    const bob = moving && !air ? Math.sin(player.runPhase * 2) * 1.2 : 0;
+    const bob = moving && !air ? Math.sin(player.runPhase * 2) * 1.3 : 0;
     const swing = air ? 0.5 : (moving ? Math.sin(player.runPhase * 2) : 0);
 
     const SKIN  = '#F2C9A8';
+    const SKIN2 = '#E0B08C';       // the leg/arm further away
     const NAVY  = '#2E3A59';
     const NAVY2 = '#3B4A70';
     const CREAM = '#FFF6E9';
     const HAIR  = '#E8C170';
-    const HAIR2 = '#F5DA9B';
+    const HAIR2 = '#F7DFA6';
+    const HAIR3 = '#CFA24F';
     const CORAL = '#F0567A';
 
-    // --- legs
-    const legLift = air ? 5 : 0;
-    ctx.fillStyle = SKIN;
-    // back leg
-    ctx.save();
-    ctx.translate(-2, -12 + bob);
-    ctx.rotate(-swing * 0.6 + (air ? 0.5 : 0));
-    ctx.fillRect(-2.5, 0, 5, 12 - legLift);
-    ctx.fillStyle = '#2A2440';                     // heel
-    ctx.fillRect(-3.5, 11 - legLift, 7, 3);
-    ctx.restore();
-    // front leg
-    ctx.fillStyle = SKIN;
-    ctx.save();
-    ctx.translate(3, -12 + bob);
-    ctx.rotate(swing * 0.6 - (air ? 0.3 : 0));
-    ctx.fillRect(-2.5, 0, 5, 12 - legLift);
-    ctx.fillStyle = '#2A2440';
-    ctx.fillRect(-3.5, 11 - legLift, 7, 3);
+    // --- legs: long and slim, most of the added height lives here
+    const legLift = air ? 6 : 0;
+    const hipY = -21 + bob;
+    [-1, 1].forEach((side) => {
+      const front = side === 1;
+      ctx.save();
+      ctx.translate(side * 2.4, hipY);
+      ctx.rotate((front ? swing : -swing) * 0.55 + (air ? (front ? -0.32 : 0.5) : 0));
+      ctx.fillStyle = front ? SKIN : SKIN2;
+      ctx.beginPath();                              // slight taper to the ankle
+      ctx.moveTo(-1.9, 0);
+      ctx.lineTo(1.9, 0);
+      ctx.lineTo(1.4, 18 - legLift);
+      ctx.lineTo(-1.4, 18 - legLift);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#2A2440';                    // court shoe + heel
+      ctx.beginPath();
+      ctx.moveTo(-2.2, 18 - legLift);
+      ctx.lineTo(3.4, 18 - legLift);
+      ctx.lineTo(3.4, 20.6 - legLift);
+      ctx.lineTo(-2.2, 20.6 - legLift);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(-2.2, 20.6 - legLift, 1.6, 2.2);
+      ctx.restore();
+    });
+
+    // --- hair falling behind her shoulders: drawn before the body, or it
+    // buries the blazer and the back arm
+    ctx.fillStyle = HAIR3;
+    ctx.beginPath();
+    ctx.ellipse(-2.2, -46 + bob, 4.0, 7.4, 0.06, 0, 6.3);
+    ctx.fill();
+    ctx.save();                                      // ponytail
+    ctx.translate(-4.4, -52 + bob);
+    ctx.rotate(swing * 0.4 - 0.3);
+    ctx.beginPath();
+    ctx.ellipse(-2.8, 6.0, 2.7, 8.6, 0.26, 0, 6.3);
+    ctx.fill();
+    ctx.fillStyle = HAIR;
+    ctx.beginPath();
+    ctx.ellipse(-2.3, 4.2, 1.9, 5.8, 0.26, 0, 6.3);
+    ctx.fill();
     ctx.restore();
 
-    // --- skirt
+    // --- pencil skirt: narrower at the hem than the hip
     ctx.fillStyle = NAVY2;
     ctx.beginPath();
-    ctx.moveTo(-8, -22 + bob);
-    ctx.lineTo(8, -22 + bob);
-    ctx.lineTo(9.5, -10 + bob);
-    ctx.lineTo(-9.5, -10 + bob);
+    ctx.moveTo(-6.6, -33 + bob);
+    ctx.lineTo(6.6, -33 + bob);
+    ctx.lineTo(5.2, -19 + bob);
+    ctx.lineTo(-5.2, -19 + bob);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(42,36,64,0.16)';           // hem shading
+    ctx.fillRect(-5.3, -21 + bob, 10.6, 2);
+
+    // --- torso: shoulders in, waist nipped
+    ctx.fillStyle = CREAM;                           // blouse
+    ctx.beginPath();
+    ctx.moveTo(-4.4, -45 + bob);
+    ctx.lineTo(4.4, -45 + bob);
+    ctx.lineTo(3.4, -32 + bob);
+    ctx.lineTo(-3.4, -32 + bob);
     ctx.closePath();
     ctx.fill();
 
-    // --- torso / blazer
-    ctx.fillStyle = CREAM;                          // blouse
-    ctx.fillRect(-5, -32 + bob, 10, 12);
-    ctx.fillStyle = NAVY;                           // blazer body
+    ctx.fillStyle = NAVY;                            // fitted blazer panels
     ctx.beginPath();
-    ctx.moveTo(-8, -33 + bob);
-    ctx.lineTo(-3.5, -33 + bob);
-    ctx.lineTo(-2, -24 + bob);
-    ctx.lineTo(-8.5, -21 + bob);
+    ctx.moveTo(-6.8, -45.5 + bob);
+    ctx.lineTo(-2.8, -45.5 + bob);
+    ctx.lineTo(-1.6, -36 + bob);
+    ctx.lineTo(-5.0, -32.5 + bob);
+    ctx.lineTo(-6.9, -34 + bob);
     ctx.closePath();
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(8, -33 + bob);
-    ctx.lineTo(3.5, -33 + bob);
-    ctx.lineTo(2, -24 + bob);
-    ctx.lineTo(8.5, -21 + bob);
+    ctx.moveTo(6.8, -45.5 + bob);
+    ctx.lineTo(2.8, -45.5 + bob);
+    ctx.lineTo(1.6, -36 + bob);
+    ctx.lineTo(5.0, -32.5 + bob);
+    ctx.lineTo(6.9, -34 + bob);
     ctx.closePath();
     ctx.fill();
-    // lapel notch
-    ctx.fillStyle = NAVY2;
+    ctx.fillStyle = NAVY2;                           // lapel notch
     ctx.beginPath();
-    ctx.moveTo(-3.5, -33 + bob); ctx.lineTo(0, -27 + bob); ctx.lineTo(3.5, -33 + bob);
+    ctx.moveTo(-2.8, -45.5 + bob);
+    ctx.lineTo(0, -38.5 + bob);
+    ctx.lineTo(2.8, -45.5 + bob);
     ctx.closePath();
     ctx.fill();
-    // scarf
-    ctx.fillStyle = CORAL;
-    ctx.fillRect(-4, -34 + bob, 8, 3);
 
-    // --- arms
+    ctx.fillStyle = CORAL;                           // scarf at the throat
+    ctx.beginPath();
+    ctx.ellipse(0.4, -46.6 + bob, 2.7, 1.5, 0, 0, 6.3);
+    ctx.fill();
+
+    // --- arms, slimmer
+    ctx.save();                                      // back arm
+    ctx.translate(-5.2, -44 + bob);
+    ctx.rotate(swing * 0.8 + (air ? -0.9 : 0.05));
     ctx.fillStyle = NAVY;
-    // back arm swings
-    ctx.save();
-    ctx.translate(-6, -31 + bob);
-    ctx.rotate(swing * 0.8 + (air ? -0.9 : 0));
-    ctx.fillRect(-2, 0, 4, 12);
-    ctx.fillStyle = SKIN;
-    ctx.fillRect(-2, 11, 4, 3);
+    ctx.fillRect(-1.5, 0, 3, 9);
+    ctx.fillStyle = SKIN2;
+    ctx.fillRect(-1.4, 8.6, 2.8, 5.5);
     ctx.restore();
-    // front arm — holds the phone
-    ctx.fillStyle = NAVY;
-    ctx.save();
-    ctx.translate(6, -31 + bob);
+
+    ctx.save();                                      // front arm — the phone hand
+    ctx.translate(5.2, -44 + bob);
     if (player.holdingPhone) {
-      ctx.rotate(-1.9);                              // up to her ear
-      ctx.fillRect(-2, 0, 4, 10);
+      ctx.rotate(-2.0);                              // up to her ear
+      ctx.fillStyle = NAVY;
+      ctx.fillRect(-1.5, 0, 3, 8);
       ctx.fillStyle = SKIN;
-      ctx.fillRect(-2, 9, 4, 3);
+      ctx.fillRect(-1.4, 7.6, 2.8, 4);
       ctx.fillStyle = '#2A2440';
-      roundRect(ctx, -3, 10, 6, 9, 1.5); ctx.fill();
+      roundRect(ctx, -2.6, 9.5, 5.2, 8.5, 1.4); ctx.fill();
     } else {
-      ctx.rotate(-swing * 0.8 + (air ? 0.7 : 0.15));
-      ctx.fillRect(-2, 0, 4, 12);
+      ctx.rotate(-swing * 0.8 + (air ? 0.7 : 0.18));
+      ctx.fillStyle = NAVY;
+      ctx.fillRect(-1.5, 0, 3, 9);
       ctx.fillStyle = SKIN;
-      ctx.fillRect(-2, 11, 4, 3);
-      ctx.fillStyle = '#2A2440';                     // phone in hand, always
-      roundRect(ctx, -2.5, 12, 5, 8, 1.5); ctx.fill();
+      ctx.fillRect(-1.4, 8.6, 2.8, 5);
+      ctx.fillStyle = '#2A2440';                     // phone always in hand
+      roundRect(ctx, -2.2, 11.5, 4.4, 7.5, 1.3); ctx.fill();
       ctx.fillStyle = '#8FD3F4';
-      ctx.fillRect(-1.5, 13, 3, 5);
+      ctx.fillRect(-1.3, 12.6, 2.6, 4.6);
     }
     ctx.restore();
 
-    // --- head
-    ctx.fillStyle = SKIN;
+    // --- neck + head (smaller head reads as taller)
+    ctx.fillStyle = SKIN2;
+    ctx.fillRect(-1.4, -49 + bob, 3.0, 4);
+
+    ctx.fillStyle = SKIN;                            // face
     ctx.beginPath();
-    ctx.arc(1, -39 + bob, 6.6, 0, 6.3);
+    ctx.ellipse(1.2, -54 + bob, 5.2, 5.9, 0, 0, 6.3);
     ctx.fill();
 
-    // ponytail (behind)
-    ctx.fillStyle = HAIR;
-    ctx.save();
-    ctx.translate(-5, -41 + bob);
-    ctx.rotate(swing * 0.35 - 0.25);
-    ctx.beginPath();
-    ctx.ellipse(-4, 5, 4, 9, 0.3, 0, 6.3);
-    ctx.fill();
-    ctx.restore();
-
-    // hair cap + fringe
+    // hair: crown over the top, swept back so her face stays clear
     ctx.fillStyle = HAIR;
     ctx.beginPath();
-    ctx.arc(1, -40 + bob, 7.1, Math.PI * 0.98, Math.PI * 2.15);
+    ctx.arc(0.9, -55 + bob, 5.9, Math.PI * 1.0, Math.PI * 2.02);
     ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(-3.4, -40 + bob, 3.6, 5.6, 0.25, 0, 6.3);
+    ctx.beginPath();                                 // hugging the back of the head
+    ctx.ellipse(-2.6, -53.4 + bob, 3.4, 5.6, 0.1, 0, 6.3);
     ctx.fill();
-    ctx.fillStyle = HAIR2;
+    ctx.beginPath();                                 // fringe sweeping off the brow
+    ctx.moveTo(-4.4, -57 + bob);
+    ctx.quadraticCurveTo(1.8, -60.4 + bob, 5.7, -56.2 + bob);
+    ctx.quadraticCurveTo(1.2, -58.2 + bob, -4.4, -55.6 + bob);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = HAIR2;                           // highlight
     ctx.beginPath();
-    ctx.ellipse(2.5, -44 + bob, 4.2, 2.2, -0.25, 0, 6.3);
+    ctx.ellipse(1.8, -58.6 + bob, 3.2, 1.6, -0.2, 0, 6.3);
     ctx.fill();
 
-    // face
+    // face details
     ctx.fillStyle = '#2A2440';
     if (stag) {
-      // dazed
-      ctx.fillRect(4.4, -40.5 + bob, 2.6, 1);
-      ctx.fillRect(4.4, -39.5 + bob, 1, 1);
+      ctx.fillRect(3.6, -55.4 + bob, 2.4, 0.9);
+      ctx.fillRect(3.6, -54.4 + bob, 0.9, 0.9);
     } else {
-      ctx.beginPath(); ctx.arc(5.2, -40 + bob, 0.95, 0, 6.3); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(4.3, -54.6 + bob, 0.7, 0.9, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = 'rgba(42,36,64,0.45)';         // lash
+      ctx.fillRect(3.6, -55.8 + bob, 1.7, 0.55);
     }
-    ctx.fillStyle = CORAL;
+    ctx.fillStyle = 'rgba(240,86,122,0.3)';          // blush
     ctx.beginPath();
-    ctx.ellipse(5.6, -36.4 + bob, 1.5, 0.9, 0, 0, 6.3);
+    ctx.ellipse(4.4, -52.5 + bob, 1.4, 0.9, 0, 0, 6.3);
+    ctx.fill();
+    ctx.fillStyle = CORAL;                           // lip
+    ctx.beginPath();
+    ctx.ellipse(4.8, -50.9 + bob, 0.95, 0.6, 0, 0, 6.3);
     ctx.fill();
 
     ctx.restore();
@@ -1587,7 +1632,7 @@
         const a = performance.now() * 0.006 + i * 2.1;
         ctx.fillStyle = '#F2B441';
         ctx.beginPath();
-        ctx.arc(sx + Math.cos(a) * 13, sy - PH - 8 + Math.sin(a) * 5, 2, 0, 6.3);
+        ctx.arc(sx + Math.cos(a) * 13, sy - PH - 12 + Math.sin(a) * 5, 2, 0, 6.3);
         ctx.fill();
       }
     }
