@@ -954,21 +954,39 @@
     });
   }
 
-  function drawKmMarkers() {
-    for (let k = 2; k <= 16; k += 2) {
-      const wx = SEG.run.x0 + (SEG.run.x1 - SEG.run.x0) * (k / 16);
-      const sx = wx - cam.x;
-      if (sx < -40 || sx > VIEW_W + 40) continue;
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.fillRect(sx - 1, GROUND_Y - 26, 3, 26);
-      roundRect(ctx, sx - 13, GROUND_Y - 40, 26, 16, 3);
-      ctx.fill();
-      ctx.fillStyle = '#5C8F4E';
-      ctx.font = '700 9px Karla, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${k}k`, sx, GROUND_Y - 29);
-    }
+  // One finish line at 16 km, instead of markers along the way — those read
+  // as things to jump and cluttered the path.
+  function drawFinishLine() {
+    const sx = SEG.run.x1 - cam.x;
+    if (sx < -160 || sx > VIEW_W + 160) return;
+
+    // posts and overhead banner, well above her head so it can't read as a hurdle
+    ctx.fillStyle = '#B9A488';
+    ctx.fillRect(sx - 64, 140, 5, GROUND_Y - 140);
+    ctx.fillRect(sx + 59, 140, 5, GROUND_Y - 140);
+
+    ctx.fillStyle = '#F0567A';
+    roundRect(ctx, sx - 66, 122, 132, 34, 6); ctx.fill();
+    ctx.fillStyle = 'rgba(255,246,233,0.32)';
+    ctx.fillRect(sx - 66, 122, 132, 5);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,246,233,0.85)';
+    ctx.font = '700 7px Karla, sans-serif';
+    ctx.fillText('F I N I S H', sx, 135);
+    ctx.fillStyle = '#FFF6E9';
+    ctx.font = '800 15px "Bricolage Grotesque", sans-serif';
+    ctx.fillText('16 KM', sx, 151);
     ctx.textAlign = 'left';
+
+    // chequer painted flat on the ground
+    const cell = 7;
+    for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < 2; r++) {
+        ctx.fillStyle = (c + r) % 2 ? '#2A2440' : '#FFF6E9';
+        ctx.fillRect(sx - 14 + c * cell, GROUND_Y + 1 + r * 4, cell, 4);
+      }
+    }
   }
 
   function drawHurdles() {
@@ -1729,7 +1747,7 @@
     drawMidground();
     drawOfficeInterior();
     drawGround();
-    drawKmMarkers();
+    drawFinishLine();
     drawHurdles();
     drawPlatforms();
     drawParty();
