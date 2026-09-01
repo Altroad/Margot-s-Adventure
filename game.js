@@ -747,10 +747,11 @@
 
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const stage = document.getElementById('stage');
 
   function resize() {
-    const r = stage.getBoundingClientRect();
+    // Measure the canvas, not the stage: in portrait the canvas is wider than
+    // the stage and cropped by it, so the stage box would give the wrong scale.
+    const r = canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.max(1, Math.round(r.width * dpr));
     const h = Math.max(1, Math.round(r.height * dpr));

@@ -60,6 +60,31 @@
 
   canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
+  /* Portrait: a 16:9 box can only be as wide as the screen, so it ends up a
+     short letterbox with dead space above and below. Give the stage a taller
+     shape and let the canvas COVER it — scaled to the stage height and cropped
+     at the sides. Everything gets bigger instead of smaller; the cost is some
+     world at the left and right edges, which is only ever empty ground.
+     The 16/9 is pinned in CSS on purpose: resize() sizes the backing store
+     from the measured box, so leaving width to the intrinsic ratio would let
+     layout and backing store chase each other. */
+  @media (orientation: portrait) {
+    .stage {
+      width: min(100vw, 58dvh);
+      aspect-ratio: 1 / 1;
+      border-radius: 0;
+    }
+    .stage canvas {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      height: 100%;
+      width: auto;
+      aspect-ratio: 16 / 9;
+    }
+  }
+
   /* ---------- HUD ---------- */
 
   .hud {
@@ -461,6 +486,6 @@
 <p class="credit">Arrow keys or WASD to move &middot; Space to jump</p>
 
 <!-- Bump ?v= on every change to game.js, or browsers keep serving the old one. -->
-<script src="game.js?v=14"></script>
+<script src="game.js?v=15"></script>
 </body>
 </html>
