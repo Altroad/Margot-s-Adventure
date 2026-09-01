@@ -747,6 +747,12 @@
 
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
+  const stage = document.getElementById('stage');
+
+  // World units hidden off each side by the portrait crop — zero in landscape,
+  // where the canvas and the stage are the same box. The camera needs this:
+  // without it the level's left end sits outside the visible band.
+  let cropX = 0;
 
   function resize() {
     // Measure the canvas, not the stage: in portrait the canvas is wider than
@@ -758,6 +764,8 @@
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
+      const sw = stage.getBoundingClientRect().width;
+      cropX = r.width > sw + 0.5 ? ((r.width - sw) / 2) * (VIEW_W / r.width) : 0;
     }
     const s = w / VIEW_W;
     ctx.setTransform(s, 0, 0, s, 0, 0);
@@ -2129,9 +2137,18 @@
   // Eases toward the target with a rate that does not change with frame rate,
   // and leads slightly in the direction she is running so more of what is
   // coming is on screen.
+  // Framed against the band actually on screen, not the whole canvas. In
+  // portrait the sides are cropped away, so clamping to the canvas would park
+  // the start of the level out of sight — which is what left Margot invisible
+  // until she had run far enough right to enter the band.
   function camFollow(raw) {
-    const lead = clamp(player.vx / MAX_SPEED, -1, 1) * 44;
-    const target = clamp(player.x + lead - VIEW_W * 0.42, 0, LEVEL_W - VIEW_W);
+    const visW = VIEW_W - cropX * 2;
+    const lead = clamp(player.vx / MAX_SPEED, -1, 1) * 44 * (visW / VIEW_W);
+    const target = clamp(
+      player.x + lead - (cropX + visW * 0.42),
+      -cropX,                          // visible left edge sits on level x=0
+      LEVEL_W - VIEW_W + cropX         // visible right edge sits on the level end
+    );
     cam.x += (target - cam.x) * (1 - Math.exp(-5.5 * raw));
   }
 
