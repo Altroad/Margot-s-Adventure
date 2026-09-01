@@ -350,6 +350,7 @@
     coyote: 0, buffer: 0,
     stumbleT: 0, invulnT: 0,
     holdingPhone: false,
+    hairFlow: 0,                 // 0 hanging, 1 streaming out behind her
   };
 
   const clock = { revealed: false, t: 0, cyprus: null };
@@ -374,7 +375,7 @@
     player.x = 90; player.y = GROUND_Y; player.vx = 0; player.vy = 0;
     player.onGround = true; player.facing = 1; player.runPhase = 0;
     player.coyote = 0; player.buffer = 0; player.stumbleT = 0; player.invulnT = 0;
-    player.holdingPhone = false;
+    player.holdingPhone = false; player.hairFlow = 0;
 
     magpies = MAGPIE_DEFS.map(d => ({ ...d, t: d.phase, cawed: false }));
     meetings = MEETING_DEFS.map(d => ({ ...d, w: MEETING_W, alive: true, pop: 0 }));
@@ -551,6 +552,12 @@
       Sound.land();
       puff(player.x, player.y, 4, 'rgba(255,255,255,0.6)');
     }
+
+    // hair lifts quickly as she gets going and falls back more slowly when she
+    // stops, so it settles rather than snapping down
+    const flowTarget = clamp(Math.abs(player.vx) / MAX_SPEED, 0, 1);
+    const flowRate = flowTarget > player.hairFlow ? 7 : 3.2;
+    player.hairFlow += (flowTarget - player.hairFlow) * Math.min(1, flowRate * dt);
 
     // run cycle
     if (player.onGround) player.runPhase += Math.abs(player.vx) * dt * 0.11;
@@ -1689,23 +1696,27 @@
 
     // --- long hair worn down, falling well past her shoulders. Drawn before
     // the body, or it buries the blazer and the back arm.
+    const flow = player.hairFlow;
     ctx.save();
     ctx.translate(0, -56 + bob);
-    ctx.rotate(swing * 0.07);                        // it sways as she runs
+    // positive rotation swings the hanging mass toward -x, i.e. out behind her
+    ctx.rotate(swing * 0.09 + flow * 0.4);
+    // the top few pixels sit up inside the skull, so the mass stays joined to
+    // her head rather than detaching as it swings out
     ctx.fillStyle = HAIR3;
     ctx.beginPath();
-    ctx.moveTo(-6.6, 0);
+    ctx.moveTo(-6.6, -4);
     ctx.quadraticCurveTo(-10.0, 12, -8.0, 28);
     ctx.quadraticCurveTo(-4.4, 31.5, -1.2, 28.5);
-    ctx.quadraticCurveTo(-0.6, 12, -1.2, 0);
+    ctx.quadraticCurveTo(-0.6, 12, -1.2, -4);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = HAIR;                            // lighter inner fall
     ctx.beginPath();
-    ctx.moveTo(-5.4, 2);
+    ctx.moveTo(-5.4, -1);
     ctx.quadraticCurveTo(-8.0, 13, -6.4, 26);
     ctx.quadraticCurveTo(-4.4, 28, -3.0, 26);
-    ctx.quadraticCurveTo(-2.6, 13, -3.0, 2);
+    ctx.quadraticCurveTo(-2.6, 13, -3.0, -1);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -1827,14 +1838,18 @@
     ctx.ellipse(1.4, -60.8 + bob, 2.4, 0.9, -0.16, 0, 6.3);
     ctx.fill();
 
-    ctx.fillStyle = HAIR;                            // strand clear of her cheek,
-    ctx.beginPath();                                 // falling over the front shoulder
-    ctx.moveTo(6.9, -51.0 + bob);
-    ctx.quadraticCurveTo(8.4, -44 + bob, 7.4, -37 + bob);
-    ctx.quadraticCurveTo(6.2, -36 + bob, 5.5, -38 + bob);
-    ctx.quadraticCurveTo(5.9, -44 + bob, 5.7, -50.5 + bob);
+    ctx.save();                                      // strand clear of her cheek,
+    ctx.translate(5.5, -52 + bob);                   // falling over the front shoulder
+    ctx.rotate(flow * 0.34);                         // and blowing back with the rest
+    ctx.fillStyle = HAIR;
+    ctx.beginPath();
+    ctx.moveTo(1.4, 1.0);
+    ctx.quadraticCurveTo(2.9, 8, 1.9, 15);
+    ctx.quadraticCurveTo(0.7, 16, 0.0, 14);
+    ctx.quadraticCurveTo(0.4, 8, 0.2, 1.5);
     ctx.closePath();
     ctx.fill();
+    ctx.restore();
 
     // face details
     ctx.fillStyle = '#2A2440';
