@@ -852,9 +852,11 @@
       const sx = i * 185 + hash(i * 2.7) * 70 - px;
       if (sx < -170 || sx > VIEW_W + 170) continue;
 
-      const here = cam.x + sx;                      // world spot this decor stands at
-      if (here >= SEG.meetings.x0 - 150 && here < SEG.meetings.x1 + 60) continue; // indoors
-
+      // No indoor cull here. It used to test cam.x + sx, which adds a world
+      // coordinate to a parallax one — that sum drifts as the camera moves, so
+      // a tree crossed the boundary while still on screen and popped in or out.
+      // The office interior is drawn opaque over full height anyway, so it
+      // already hides whatever stands behind it.
       drawGumTree(sx, PLANT_Y, 0.8 + hash(i * 5.3) * 0.4, true);
     }
 
@@ -947,10 +949,10 @@
       if (sx < l - 40 || sx > r + 40) continue;
       ctx.fillStyle = '#FFFBEA';
       roundRect(ctx, sx, 12, 54, 9, 4); ctx.fill();
-      ctx.fillStyle = 'rgba(255,251,234,0.3)';
+      ctx.fillStyle = 'rgba(255,251,234,0.16)';   // faint spill, not a shape
       ctx.beginPath();
       ctx.moveTo(sx, 21); ctx.lineTo(sx + 54, 21);
-      ctx.lineTo(sx + 78, 118); ctx.lineTo(sx - 24, 118);
+      ctx.lineTo(sx + 70, 84); ctx.lineTo(sx - 16, 84);
       ctx.closePath(); ctx.fill();
     }
 
@@ -976,21 +978,25 @@
       ctx.fillRect(sx - 5, 188, 134, 5);
     }
 
-    // desks along the back wall
-    for (let wx = Math.floor(SEG.meetings.x0 / 190) * 190 + 60; wx < SEG.meetings.x1; wx += 190) {
+    // The floor is kept clear on purpose. Desks used to stand here with tops at
+    // GROUND_Y-46 — exactly the height of a meeting window — so the background
+    // read as platforms at the same height as the thing you actually jump on.
+    // All the scenery now lives above the jumping band, which makes the rule
+    // plain: if it is on the floor, you can jump on it.
+    // offset from the window run above so a clock never lands on the glass
+    for (let wx = SEG.meetings.x0 + 330; wx < SEG.meetings.x1 - 60; wx += 300) {
       const sx = wx - cam.x;
-      if (sx < l - 90 || sx > r + 90) continue;
-      ctx.fillStyle = '#D6D2C6';
-      ctx.fillRect(sx, GROUND_Y - 46, 74, 6);
-      ctx.fillStyle = '#C2BEB2';
-      ctx.fillRect(sx + 4, GROUND_Y - 40, 5, 40);
-      ctx.fillRect(sx + 65, GROUND_Y - 40, 5, 40);
-      ctx.fillStyle = '#5C6480';                 // monitor
-      roundRect(ctx, sx + 22, GROUND_Y - 74, 32, 22, 2); ctx.fill();
-      ctx.fillStyle = '#8FA8C8';
-      ctx.fillRect(sx + 25, GROUND_Y - 71, 26, 16);
-      ctx.fillStyle = '#5C6480';
-      ctx.fillRect(sx + 36, GROUND_Y - 52, 4, 6);
+      if (sx < l - 40 || sx > r + 40) continue;
+      ctx.fillStyle = '#DDE0F0';                  // wall clock, low contrast
+      ctx.beginPath(); ctx.arc(sx, 132, 13, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#EDEFF9';
+      ctx.beginPath(); ctx.arc(sx, 132, 10, 0, 6.3); ctx.fill();
+      ctx.strokeStyle = '#C2C7E0';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(sx, 132); ctx.lineTo(sx, 125);
+      ctx.moveTo(sx, 132); ctx.lineTo(sx + 6, 134);
+      ctx.stroke();
     }
 
     // skirting
@@ -1369,11 +1375,22 @@
       ctx.fillStyle = 'rgba(42,36,64,0.16)';
       ctx.beginPath(); ctx.ellipse(sx + m.w / 2, GROUND_Y - 1, m.w * 0.42, 4, 0, 0, 6.3); ctx.fill();
 
+      // Drawn to sit forward of the wall: a cast shadow, a solid dark outline
+      // and a saturated header, so it never reads as part of the office behind.
+      ctx.fillStyle = 'rgba(42,36,64,0.2)';
+      roundRect(ctx, sx + 3, top + 4, m.w, m.h, 6); ctx.fill();
+
       ctx.fillStyle = '#FFFFFF';
       roundRect(ctx, sx, top, m.w, m.h, 6); ctx.fill();
-      ctx.fillStyle = '#5B5FC7';
+      ctx.fillStyle = '#4B4FBF';
       roundRect(ctx, sx, top, m.w, 15, 6); ctx.fill();
       ctx.fillRect(sx, top + 9, m.w, 6);
+      ctx.strokeStyle = '#343A8E';
+      ctx.lineWidth = 2;
+      roundRect(ctx, sx, top, m.w, m.h, 6); ctx.stroke();
+      // a lip along the top edge, reading as a surface to land on
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(sx + 3, top + 1.5, m.w - 6, 1.5);
 
       // title
       ctx.fillStyle = '#FFF6E9';
@@ -1966,12 +1983,15 @@
     const base = VIEW_H - 4;
 
     for (let i = first; i < first + Math.ceil(VIEW_W / step) + 4; i++) {
-      const gx = i * step + hash(i * 1.7) * 16 - px;
+      const layerX = i * step + hash(i * 1.7) * 16;
+      const gx = layerX - px;
       if (gx < -14 || gx > VIEW_W + 14) continue;
-      // no grass growing out of the office carpet — cull by where the blade
-      // actually sits on screen, not by which segment she happens to be in
-      const here = cam.x + gx;
-      if (here >= SEG.meetings.x0 - 30 && here < SEG.meetings.x1 + 10) continue;
+      // No grass growing out of the office carpet. This has to be decided from
+      // something fixed per blade — cam.x + gx drifts as the camera moves and
+      // would blink blades on and off mid-screen — so use the world position
+      // the camera is at when this blade passes screen centre.
+      const anchor = (layerX - VIEW_W / 2) / 1.28 + VIEW_W / 2;
+      if (anchor >= SEG.meetings.x0 - 40 && anchor < SEG.meetings.x1 + 20) continue;
       const h = 7 + hash(i * 4.3) * 10;
       const lean = Math.sin(performance.now() * 0.0011 + i * 0.6) * 2.2;
       // a neutral shadow tone, so it reads as blades over dirt and lawn alike
