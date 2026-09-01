@@ -789,32 +789,6 @@
     ctx.restore();
   }
 
-  const HOUSE_WALLS = ['#E6D9C4', '#DCCBB6', '#EADFCE', '#D8CDBE'];
-  const HOUSE_ROOFS = ['#B0705E', '#9C6B62', '#C08268', '#8E6A64'];
-
-  function drawHouse(x, groundY, w, h, seed) {
-    const wall = HOUSE_WALLS[Math.floor(hash(seed) * HOUSE_WALLS.length)];
-    const roof = HOUSE_ROOFS[Math.floor(hash(seed * 1.7) * HOUSE_ROOFS.length)];
-    ctx.fillStyle = wall;
-    ctx.fillRect(x, groundY - h, w, h);
-    ctx.fillStyle = roof;
-    ctx.beginPath();
-    ctx.moveTo(x - 8, groundY - h + 2);
-    ctx.lineTo(x + w / 2, groundY - h - 26);
-    ctx.lineTo(x + w + 8, groundY - h + 2);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = 'rgba(42,36,64,0.09)';        // eave shadow
-    ctx.fillRect(x, groundY - h + 2, w, 4);
-    ctx.fillStyle = '#9FC0D4';                     // windows
-    for (let i = 0; i < Math.floor(w / 34); i++) {
-      ctx.fillRect(x + 11 + i * 34, groundY - h + 18, 17, 17);
-      ctx.fillStyle = 'rgba(255,255,255,0.45)';
-      ctx.fillRect(x + 11 + i * 34, groundY - h + 18, 17, 7);
-      ctx.fillStyle = '#9FC0D4';
-    }
-  }
-
   function drawBackground() {
     const sky = skyAt(cam.x + VIEW_W / 2);
     const g = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
@@ -881,11 +855,7 @@
       const here = cam.x + sx;                      // world spot this decor stands at
       if (here >= SEG.meetings.x0 - 150 && here < SEG.meetings.x1 + 60) continue; // indoors
 
-      if (here < SEG.meetings.x0) {
-        drawGumTree(sx, PLANT_Y, 0.8 + hash(i * 5.3) * 0.4, true);
-      } else {
-        drawHouse(sx, PLANT_Y, 78, 50 + hash(i * 13.1) * 20, i);
-      }
+      drawGumTree(sx, PLANT_Y, 0.8 + hash(i * 5.3) * 0.4, true);
     }
 
     // The office tower she disappears into. Parallax it like the rest of this
