@@ -108,6 +108,11 @@
   const GATE_X  = 5820;
   const PHONE_X = 6140;
 
+  // The timezone check at the top of the level: Margot is in Sydney, Daniel is
+  // in Cyprus. Jump on it and it tells her whether he is likely awake.
+  const CLOCK_X = 214, CLOCK_W = 68, CLOCK_H = 52;
+  const CLOCK_SPIN = 1.5;            // seconds of whirling before it settles
+
   // ---------------------------------------------------------------- helpers
 
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -141,6 +146,47 @@
     c.arcTo(x, y + h, x, y, rr);
     c.arcTo(x, y, x + w, y, rr);
     c.closePath();
+  }
+
+  // ---------------------------------------------------------------- timezones
+
+  function zoneParts(tz, date) {
+    const fmt = new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz, hour12: false,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+    const out = {};
+    for (const p of fmt.formatToParts(date)) if (p.type !== 'literal') out[p.type] = p.value;
+    return out;
+  }
+
+  // Read the zone's wall clock as if it were UTC; the gap from the real instant
+  // is that zone's offset, DST included.
+  function zoneOffsetMinutes(tz, date) {
+    const p = zoneParts(tz, date);
+    const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+    return Math.round((asUTC - date.getTime()) / 60000);
+  }
+
+  function readCyprusTime() {
+    try {
+      const now = new Date();
+      const p = zoneParts('Asia/Nicosia', now);
+      const h = +p.hour, m = +p.minute;
+      if (!Number.isFinite(h) || !Number.isFinite(m)) return { ok: false };
+      const gap = Math.round(
+        (zoneOffsetMinutes('Australia/Sydney', now) - zoneOffsetMinutes('Asia/Nicosia', now)) / 60
+      );
+      return { ok: true, h, m, gap, asleep: h >= 22 || h < 5 };
+    } catch (e) {
+      return { ok: false };            // no named-timezone support
+    }
+  }
+
+  function fmt12(h, m) {
+    const hr = ((h + 11) % 12) + 1;
+    return `${hr}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
   }
 
   function fmtClock(s) {
@@ -230,6 +276,7 @@
     caw()     { this.tone(880, 0.09, 'sawtooth', 0.06, 520); setTimeout(() => this.tone(760, 0.08, 'sawtooth', 0.05, 460), 90); },
     ring()    { this.tone(480, 0.28, 'sine', 0.09); setTimeout(() => this.tone(600, 0.28, 'sine', 0.09), 150); },
     gate()    { this.tone(520, 0.14, 'sine', 0.09, 780); },
+    chime()   { [660, 880, 1180].forEach((f, i) => setTimeout(() => this.tone(f, 0.36, 'sine', 0.085), i * 95)); },
     win()     {
       [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.34, 'triangle', 0.1), i * 130));
     },
@@ -305,6 +352,8 @@
     holdingPhone: false,
   };
 
+  const clock = { revealed: false, t: 0, cyprus: null };
+
   let magpies = [];
   let meetings = [];
   let party = [];
@@ -331,6 +380,7 @@
     meetings = MEETING_DEFS.map(d => ({ ...d, w: MEETING_W, alive: true, pop: 0 }));
     party = PARTY_DEFS.map(d => ({ ...d, taken: false, bob: hash(d.x) * 6.28 }));
     puffs = []; floaters = [];
+    clock.revealed = false; clock.t = 0; clock.cyprus = null;
     cam.x = 0;
     tasks.forEach(t => { t.done = false; });
   }
@@ -390,6 +440,7 @@
   function solidsNear() {
     const list = [];
     for (const p of PLATFORMS) list.push(p);
+    list.push({ x: CLOCK_X, y: GROUND_Y - CLOCK_H, w: CLOCK_W, h: CLOCK_H, clockPlinth: true });
     for (const m of meetings) {
       if (m.alive) list.push({ x: m.x, y: GROUND_Y - m.h, w: m.w, h: m.h, meeting: m });
     }
@@ -474,6 +525,13 @@
             dismissMeeting(s.meeting);
             player.vy = -370;          // satisfying bounce off
             player.onGround = false;
+          }
+          if (s.clockPlinth && !clock.revealed) {
+            clock.revealed = true;
+            clock.t = 0;
+            clock.cyprus = readCyprusTime();
+            Sound.chime();
+            puff(CLOCK_X + CLOCK_W / 2, GROUND_Y - CLOCK_H, 10, 'rgba(242,180,65,0.7)');
           }
         } else if (player.vy < 0) {
           player.y = s.y + s.h + PH;
@@ -621,6 +679,7 @@
     for (const m of meetings) {
       if (m.pop > 0) m.pop = Math.max(0, m.pop - dt);
     }
+    if (clock.revealed) clock.t += dt;
   }
 
   // ---------------------------------------------------------------- finale
@@ -954,6 +1013,140 @@
       ctx.fillStyle = '#5B5FC7';
       ctx.fillRect(sx + 3, GROUND_Y - 96, 6, 16);
     });
+  }
+
+  function drawClockPlinth() {
+    const sx = CLOCK_X - cam.x;
+    if (sx < -220 || sx > VIEW_W + 220) return;
+
+    const top = GROUND_Y - CLOCK_H;
+    const c = clock.cyprus;
+    const ok = c && c.ok;
+    const glow = ok && c.asleep ? '#E0455F' : '#4FA85F';
+
+    // the face lights only once the hands have nearly settled
+    const lit = clock.revealed
+      ? clamp((clock.t - CLOCK_SPIN * 0.6) / (CLOCK_SPIN * 0.5), 0, 1)
+      : 0;
+
+    if (lit > 0 && ok) {
+      const g = ctx.createRadialGradient(sx + CLOCK_W / 2, top + CLOCK_H / 2, 6,
+                                         sx + CLOCK_W / 2, top + CLOCK_H / 2, 78);
+      g.addColorStop(0, glow + (c.asleep ? '55' : '4D'));
+      g.addColorStop(1, glow + '00');
+      ctx.save();
+      ctx.globalAlpha = lit;
+      ctx.fillStyle = g;
+      ctx.fillRect(sx + CLOCK_W / 2 - 82, top + CLOCK_H / 2 - 82, 164, 164);
+      ctx.restore();
+    }
+
+    // plinth
+    ctx.fillStyle = 'rgba(42,36,64,0.16)';
+    ctx.beginPath(); ctx.ellipse(sx + CLOCK_W / 2, GROUND_Y - 1, CLOCK_W * 0.44, 4, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#D5CBBA';
+    roundRect(ctx, sx, top, CLOCK_W, CLOCK_H, 5); ctx.fill();
+    ctx.fillStyle = '#E7DFD1';                       // cap she lands on
+    roundRect(ctx, sx - 3, top - 5, CLOCK_W + 6, 8, 3); ctx.fill();
+    ctx.fillStyle = 'rgba(42,36,64,0.08)';
+    ctx.fillRect(sx, top + 3, CLOCK_W, 3);
+
+    // face
+    const fx = sx + CLOCK_W / 2, fy = top + CLOCK_H / 2 + 4, R = 16;
+    ctx.fillStyle = '#FFF6E9';
+    ctx.beginPath(); ctx.arc(fx, fy, R, 0, 6.3); ctx.fill();
+    ctx.strokeStyle = lit > 0 && ok ? glow : '#A99C87';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.arc(fx, fy, R, 0, 6.3); ctx.stroke();
+
+    ctx.fillStyle = '#8C8172';                       // hour ticks
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6;
+      const r1 = i % 3 === 0 ? R - 5 : R - 3.5;
+      ctx.beginPath();
+      ctx.arc(fx + Math.cos(a) * r1, fy + Math.sin(a) * r1, i % 3 === 0 ? 1.3 : 0.8, 0, 6.3);
+      ctx.fill();
+    }
+
+    // hands: whirl on landing, then settle onto the real Cyprus time
+    let hourA = -Math.PI / 2, minA = -Math.PI / 2;
+    if (ok) {
+      minA = (c.m / 60) * Math.PI * 2 - Math.PI / 2;
+      hourA = (((c.h % 12) + c.m / 60) / 12) * Math.PI * 2 - Math.PI / 2;
+    }
+    if (clock.revealed && clock.t < CLOCK_SPIN) {
+      const k = clock.t / CLOCK_SPIN;
+      const ease = 1 - Math.pow(1 - k, 3);
+      const spin = (1 - ease) * Math.PI * 2 * 5;
+      minA += spin;
+      hourA += spin / 12;
+    } else if (!clock.revealed) {
+      minA = -Math.PI / 2 + 2.1;                     // parked, before she lands
+      hourA = -Math.PI / 2 + 0.7;
+    }
+
+    ctx.strokeStyle = '#2A2440';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(fx, fy); ctx.lineTo(fx + Math.cos(hourA) * 8, fy + Math.sin(hourA) * 8);
+    ctx.stroke();
+    ctx.lineWidth = 1.7;
+    ctx.beginPath();
+    ctx.moveTo(fx, fy); ctx.lineTo(fx + Math.cos(minA) * 12, fy + Math.sin(minA) * 12);
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+    ctx.fillStyle = lit > 0 && ok ? glow : '#2A2440';
+    ctx.beginPath(); ctx.arc(fx, fy, 2, 0, 6.3); ctx.fill();
+
+    // "jump on me" nudge until she does
+    if (!clock.revealed && Math.abs(CLOCK_X + CLOCK_W / 2 - player.x) < 150 && player.onGround) {
+      const a = 0.4 + Math.sin(performance.now() * 0.006) * 0.25;
+      ctx.fillStyle = `rgba(240,86,122,${a})`;
+      ctx.beginPath();
+      ctx.moveTo(fx, top - 20); ctx.lineTo(fx - 6, top - 12); ctx.lineTo(fx + 6, top - 12);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // the readout
+    if (lit > 0) {
+      ctx.save();
+      ctx.globalAlpha = lit;
+      // clears her head — she is standing on the plinth while reading it
+      const cw = 132, ch = 70, cx0 = fx - cw / 2, cy0 = top - ch - 66;
+      ctx.fillStyle = 'rgba(255,246,233,0.96)';
+      roundRect(ctx, cx0, cy0, cw, ch, 8); ctx.fill();
+      ctx.strokeStyle = ok ? glow : '#A99C87';
+      ctx.lineWidth = 2;
+      roundRect(ctx, cx0, cy0, cw, ch, 8); ctx.stroke();
+      ctx.beginPath();                                // little pointer down to the clock
+      ctx.moveTo(fx - 6, cy0 + ch); ctx.lineTo(fx, cy0 + ch + 8); ctx.lineTo(fx + 6, cy0 + ch);
+      ctx.fillStyle = 'rgba(255,246,233,0.96)';
+      ctx.fill();
+
+      ctx.textAlign = 'center';
+      if (ok) {
+        ctx.fillStyle = '#6B6285';
+        ctx.font = '700 8px Karla, sans-serif';
+        ctx.fillText('CYPRUS', fx, cy0 + 15);
+        ctx.fillStyle = '#2A2440';
+        ctx.font = '800 18px "Bricolage Grotesque", sans-serif';
+        ctx.fillText(fmt12(c.h, c.m), fx, cy0 + 36);
+        ctx.fillStyle = glow;
+        ctx.font = '700 9px Karla, sans-serif';
+        ctx.fillText(c.asleep ? 'Daniel is asleep' : 'Daniel is awake', fx, cy0 + 50);
+        ctx.fillStyle = '#6B6285';
+        ctx.font = '400 8px Karla, sans-serif';
+        ctx.fillText(`${Math.abs(c.gap)}h behind Sydney`, fx, cy0 + 62);
+      } else {
+        ctx.fillStyle = '#2A2440';
+        ctx.font = '700 10px Karla, sans-serif';
+        ctx.fillText('Cyprus time', fx, cy0 + 30);
+        ctx.fillText('unavailable', fx, cy0 + 44);
+      }
+      ctx.textAlign = 'left';
+      ctx.restore();
+    }
   }
 
   // One finish line at 16 km, instead of markers along the way — those read
@@ -1749,6 +1942,7 @@
     drawMidground();
     drawOfficeInterior();
     drawGround();
+    drawClockPlinth();
     drawFinishLine();
     drawHurdles();
     drawPlatforms();
