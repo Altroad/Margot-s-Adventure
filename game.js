@@ -1649,14 +1649,14 @@
     const bob = moving && !air ? Math.sin(player.runPhase * 2) * 1.3 : 0;
     const swing = air ? 0.5 : (moving ? Math.sin(player.runPhase * 2) : 0);
 
-    const SKIN  = '#F2C9A8';
-    const SKIN2 = '#E0B08C';       // the leg/arm further away
+    const SKIN  = '#EFC5A0';
+    const SKIN2 = '#DBAA83';       // the leg/arm further away
     const NAVY  = '#2E3A59';
     const NAVY2 = '#3B4A70';
     const CREAM = '#FFF6E9';
-    const HAIR  = '#E8C170';
-    const HAIR2 = '#F7DFA6';
-    const HAIR3 = '#CFA24F';
+    const HAIR  = '#E9CA85';       // light golden blonde
+    const HAIR2 = '#F8E5BA';
+    const HAIR3 = '#CDA862';
     const CORAL = '#F0567A';
 
     // --- legs: long and slim, most of the added height lives here
@@ -1687,21 +1687,26 @@
       ctx.restore();
     });
 
-    // --- hair falling behind her shoulders: drawn before the body, or it
-    // buries the blazer and the back arm
+    // --- long hair worn down, falling well past her shoulders. Drawn before
+    // the body, or it buries the blazer and the back arm.
+    ctx.save();
+    ctx.translate(0, -56 + bob);
+    ctx.rotate(swing * 0.07);                        // it sways as she runs
     ctx.fillStyle = HAIR3;
     ctx.beginPath();
-    ctx.ellipse(-2.2, -46 + bob, 4.0, 7.4, 0.06, 0, 6.3);
+    ctx.moveTo(-6.6, 0);
+    ctx.quadraticCurveTo(-10.0, 12, -8.0, 28);
+    ctx.quadraticCurveTo(-4.4, 31.5, -1.2, 28.5);
+    ctx.quadraticCurveTo(-0.6, 12, -1.2, 0);
+    ctx.closePath();
     ctx.fill();
-    ctx.save();                                      // ponytail
-    ctx.translate(-4.4, -52 + bob);
-    ctx.rotate(swing * 0.4 - 0.3);
+    ctx.fillStyle = HAIR;                            // lighter inner fall
     ctx.beginPath();
-    ctx.ellipse(-2.8, 6.0, 2.7, 8.6, 0.26, 0, 6.3);
-    ctx.fill();
-    ctx.fillStyle = HAIR;
-    ctx.beginPath();
-    ctx.ellipse(-2.3, 4.2, 1.9, 5.8, 0.26, 0, 6.3);
+    ctx.moveTo(-5.4, 2);
+    ctx.quadraticCurveTo(-8.0, 13, -6.4, 26);
+    ctx.quadraticCurveTo(-4.4, 28, -3.0, 26);
+    ctx.quadraticCurveTo(-2.6, 13, -3.0, 2);
+    ctx.closePath();
     ctx.fill();
     ctx.restore();
 
@@ -1799,23 +1804,36 @@
     ctx.ellipse(1.2, -54 + bob, 5.2, 5.9, 0, 0, 6.3);
     ctx.fill();
 
-    // hair: crown over the top, swept back so her face stays clear
+    // hair: crown, a full fringe to the brow, and a strand over the shoulder.
+    // The hairline sits high enough that her eye and mouth stay clear of it.
     ctx.fillStyle = HAIR;
     ctx.beginPath();
-    ctx.arc(0.9, -55 + bob, 5.9, Math.PI * 1.0, Math.PI * 2.02);
+    ctx.arc(0.9, -56.6 + bob, 6.0, Math.PI * 1.0, Math.PI * 2.02);
     ctx.fill();
     ctx.beginPath();                                 // hugging the back of the head
-    ctx.ellipse(-2.6, -53.4 + bob, 3.4, 5.6, 0.1, 0, 6.3);
+    ctx.ellipse(-3.0, -53.6 + bob, 3.5, 6.2, 0.1, 0, 6.3);
     ctx.fill();
-    ctx.beginPath();                                 // fringe sweeping off the brow
-    ctx.moveTo(-4.4, -57 + bob);
-    ctx.quadraticCurveTo(1.8, -60.4 + bob, 5.7, -56.2 + bob);
-    ctx.quadraticCurveTo(1.2, -58.2 + bob, -4.4, -55.6 + bob);
+
+    ctx.beginPath();                                 // full fringe, cut to the brow
+    ctx.moveTo(-5.2, -59.0 + bob);
+    ctx.quadraticCurveTo(0.8, -62.6 + bob, 6.3, -58.2 + bob);
+    ctx.lineTo(6.1, -56.6 + bob);
+    ctx.quadraticCurveTo(0.9, -59.4 + bob, -5.0, -57.0 + bob);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = HAIR2;                           // highlight
+
+    ctx.fillStyle = '#F1D59B';                       // sun-lightened top, kept subtle
     ctx.beginPath();
-    ctx.ellipse(1.8, -58.6 + bob, 3.2, 1.6, -0.2, 0, 6.3);
+    ctx.ellipse(1.4, -60.8 + bob, 2.4, 0.9, -0.16, 0, 6.3);
+    ctx.fill();
+
+    ctx.fillStyle = HAIR;                            // strand clear of her cheek,
+    ctx.beginPath();                                 // falling over the front shoulder
+    ctx.moveTo(6.9, -51.0 + bob);
+    ctx.quadraticCurveTo(8.4, -44 + bob, 7.4, -37 + bob);
+    ctx.quadraticCurveTo(6.2, -36 + bob, 5.5, -38 + bob);
+    ctx.quadraticCurveTo(5.9, -44 + bob, 5.7, -50.5 + bob);
+    ctx.closePath();
     ctx.fill();
 
     // face details
