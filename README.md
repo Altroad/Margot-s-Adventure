@@ -1,7 +1,7 @@
 # Margot's Adventure
 
 A small browser game. Margot has been trying to call Daniel all day and cannot get a
-free minute. One level, three controls, roughly two minutes to finish.
+free minute. One level, three controls, about a minute to finish.
 
 **Play it:** https://altroad.github.io/Margot-s-Adventure/
 

@@ -30,13 +30,15 @@
 
   // ---------------------------------------------------------------- level
 
+  // Each stretch is sized to hold three obstacles at the gaps the fuller sets
+  // used — the same rhythm, without the empty ground the cuts left behind.
   const SEG = {
-    home:     { x0: 0,    x1: 340  },
-    run:      { x0: 340,  x1: 2000 },
-    magpies:  { x0: 2000, x1: 3220 },
-    meetings: { x0: 3220, x1: 4520 },
-    party:    { x0: 4520, x1: 5880 },
-    call:     { x0: 5880, x1: 6300 },
+    home:     { x0: 0,    x1: 340  },   // lead-in + the clock plinth
+    run:      { x0: 340,  x1: 1070 },   // lead 220, gaps 187, trail 130
+    magpies:  { x0: 1070, x1: 1830 },   // lead 170, gaps 230, trail 130
+    meetings: { x0: 1830, x1: 2665 },   // lead 170, gaps 233, trail 205
+    party:    { x0: 2665, x1: 3265 },   // lead 150, gaps 154, then the gate
+    call:     { x0: 3265, x1: 3685 },
   };
   const LEVEL_W = SEG.call.x1;
 
@@ -44,21 +46,21 @@
   // so the sunrise gets its own short, deliberate transition.
   const SKY = [
     { x: 0,    top: '#E8825F', bot: '#FFC98E' },  // before sunrise
-    { x: 800,  top: '#EE9A6E', bot: '#FFD9A6' },  // sun coming up
-    { x: 1450, top: '#F0B48D', bot: '#FFE8C4' },  // warm haze
-    { x: 1800, top: '#C7C4C9', bot: '#FBF0DE' },  // the brief pale minute
-    { x: 2100, top: '#7CBCE4', bot: '#CDE8F7' },  // morning
-    { x: 3220, top: '#8AC4E7', bot: '#DCEEF8' },  // midday
-    { x: 4520, top: '#7DBDDB', bot: '#FFE2B4' },  // afternoon
-    { x: 5450, top: '#6E86BC', bot: '#F7C89A' },  // golden hour
-    { x: 5880, top: '#4E5C96', bot: '#F0A177' },  // dusk
-    { x: 6300, top: '#3A4480', bot: '#D9805F' },
+    { x: 544,  top: '#EE9A6E', bot: '#FFD9A6' },  // sun coming up
+    { x: 829,  top: '#F0B48D', bot: '#FFE8C4' },  // warm haze
+    { x: 982,  top: '#C7C4C9', bot: '#FBF0DE' },  // the brief pale minute
+    { x: 1131, top: '#7CBCE4', bot: '#CDE8F7' },  // morning
+    { x: 1830, top: '#8AC4E7', bot: '#DCEEF8' },  // midday
+    { x: 2665, top: '#7DBDDB', bot: '#FFE2B4' },  // afternoon
+    { x: 3073, top: '#6E86BC', bot: '#F7C89A' },  // golden hour
+    { x: 3265, top: '#4E5C96', bot: '#F0A177' },  // dusk
+    { x: 3685, top: '#3A4480', bot: '#D9805F' },
   ];
 
   const HURDLES = [
-    { x: 720,  kind: 'bench'  },
-    { x: 1180, kind: 'puddle' },
-    { x: 1620, kind: 'dog'    },
+    { x: 560, kind: 'bench'  },
+    { x: 750, kind: 'puddle' },
+    { x: 940, kind: 'dog'    },
   ];
   const HURDLE_SIZE = {
     puddle:  { w: 46, h: 7,  hit: [40, 7]  },
@@ -68,31 +70,32 @@
   };
 
   const MAGPIE_DEFS = [
-    { x: 2280, period: 2.4, phase: 0.0 },
-    { x: 2620, period: 2.6, phase: 1.1 },
-    { x: 2960, period: 2.3, phase: 0.5 },
+    { x: 1240, period: 2.4, phase: 0.0 },
+    { x: 1470, period: 2.6, phase: 1.1 },
+    { x: 1700, period: 2.3, phase: 0.5 },
   ];
 
   const MEETING_DEFS = [
-    { x: 3500, h: 46, title: 'Weekly Sync',     quip: 'You’re on mute' },
-    { x: 3860, h: 54, title: 'Sprint Planning', quip: 'Let’s take that offline' },
-    { x: 4220, h: 48, title: 'Q3 Roadmap',      quip: 'Can everyone see my screen?' },
+    { x: 2000, h: 46, title: 'Weekly Sync',     quip: 'You’re on mute' },
+    { x: 2230, h: 54, title: 'Sprint Planning', quip: 'Let’s take that offline' },
+    { x: 2460, h: 48, title: 'Q3 Roadmap',      quip: 'Can everyone see my screen?' },
   ];
   const MEETING_W = 74;
 
+  // The esky went with the items it used to hold; the trestle table stays
+  // because the cake sits on it.
   const PLATFORMS = [
-    { x: 4820, y: GROUND_Y - 62, w: 78, h: 11 },   // esky
-    { x: 5250, y: GROUND_Y - 48, w: 96, h: 11 },   // trestle table
+    { x: 2922, y: GROUND_Y - 48, w: 96, h: 11 },   // trestle table
   ];
 
   const PARTY_DEFS = [
-    { x: 4750, y: GROUND_Y - 26,  kind: 'present' },
-    { x: 5298, y: GROUND_Y - 56,  kind: 'cake'    },   // sits on the trestle table
-    { x: 5620, y: GROUND_Y - 104, kind: 'balloon' },   // needs a jump
+    { x: 2815, y: GROUND_Y - 26,  kind: 'present' },
+    { x: 2970, y: GROUND_Y - 56,  kind: 'cake'    },   // sits on the trestle table
+    { x: 3125, y: GROUND_Y - 104, kind: 'balloon' },   // needs a jump
   ];
 
-  const GATE_X  = 5820;
-  const PHONE_X = 6140;
+  const GATE_X  = 3200;
+  const PHONE_X = 3525;
 
   // The timezone check at the top of the level: Margot is in Sydney, Daniel is
   // in Cyprus. Jump on it and it tells her whether he is likely awake.
@@ -885,8 +888,11 @@
       }
     }
 
-    // the office tower Margot disappears into, drawn on the approach
-    const towerX = SEG.meetings.x0 - cam.x * 0.55 - (SEG.meetings.x0 - cam.x) * 0.45;
+    // The office tower she disappears into. Parallax it like the rest of this
+    // layer, so it slides off behind her once she is past — the old formula
+    // drifted the wrong way and only stayed off screen because the level used
+    // to be long enough to run out first.
+    const towerX = 0.55 * (SEG.meetings.x0 - cam.x);
     if (towerX > -320 && towerX < VIEW_W + 320) {
       const h = 210;
       ctx.fillStyle = '#9AA6C8';
