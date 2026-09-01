@@ -12,10 +12,10 @@ moves from dawn to dusk as she goes.
 
 | Stretch | What's in the way | What you do |
 | --- | --- | --- |
-| The 16 km run | Park benches, puddles, a sleeping dog, an abandoned scooter | Jump the lot, tick over to 16 km |
-| Magpie season | Five magpies on a swooping cycle | Watch for the flashing patch, then time your run through it |
-| Back-to-back | Five Teams windows blocking the corridor | Jump on top of each one to end the meeting |
-| The birthday party | Eight things the party needs | Collect all eight; the archway won't open until you do |
+| The 16 km run | A park bench, a puddle and a sleeping dog | Jump them, tick over to 16 km |
+| Magpie season | Three magpies on a swooping cycle | Watch for the flashing patch, then time your run through it |
+| Back-to-back | Three Teams windows blocking the corridor | Jump on top of each one to end the meeting |
+| The birthday party | Three things the party needs | Collect all three; the archway won't open until you do |
 | At last | Nothing | Reach the phone. Call Daniel. |
 
 You cannot lose. Getting hit costs you two seconds and a stumble, nothing more —

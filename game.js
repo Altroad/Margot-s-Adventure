@@ -56,14 +56,9 @@
   ];
 
   const HURDLES = [
-    { x: 560,  kind: 'puddle'  },
-    { x: 780,  kind: 'bench'   },
-    { x: 980,  kind: 'puddle'  },
-    { x: 1150, kind: 'dog'     },
-    { x: 1340, kind: 'bench'   },
-    { x: 1520, kind: 'puddle'  },
-    { x: 1680, kind: 'scooter' },
-    { x: 1870, kind: 'bench'   },
+    { x: 720,  kind: 'bench'  },
+    { x: 1180, kind: 'puddle' },
+    { x: 1620, kind: 'dog'    },
   ];
   const HURDLE_SIZE = {
     puddle:  { w: 46, h: 7,  hit: [40, 7]  },
@@ -73,19 +68,15 @@
   };
 
   const MAGPIE_DEFS = [
-    { x: 2170, period: 2.4, phase: 0.0 },
-    { x: 2410, period: 2.6, phase: 1.1 },
-    { x: 2650, period: 2.3, phase: 0.5 },
-    { x: 2880, period: 2.7, phase: 1.7 },
-    { x: 3090, period: 2.2, phase: 0.9 },
+    { x: 2280, period: 2.4, phase: 0.0 },
+    { x: 2620, period: 2.6, phase: 1.1 },
+    { x: 2960, period: 2.3, phase: 0.5 },
   ];
 
   const MEETING_DEFS = [
-    { x: 3390, h: 46, title: 'Weekly Sync',     quip: 'You’re on mute' },
-    { x: 3620, h: 54, title: 'Quick Catch-up',  quip: 'Just a quick one' },
-    { x: 3870, h: 44, title: 'Sprint Planning', quip: 'Let’s take that offline' },
-    { x: 4100, h: 56, title: 'Q3 Roadmap',      quip: 'Can everyone see my screen?' },
-    { x: 4320, h: 48, title: 'Retro',           quip: 'I’ll drop a note in the chat' },
+    { x: 3500, h: 46, title: 'Weekly Sync',     quip: 'You’re on mute' },
+    { x: 3860, h: 54, title: 'Sprint Planning', quip: 'Let’s take that offline' },
+    { x: 4220, h: 48, title: 'Q3 Roadmap',      quip: 'Can everyone see my screen?' },
   ];
   const MEETING_W = 74;
 
@@ -95,14 +86,9 @@
   ];
 
   const PARTY_DEFS = [
-    { x: 4670, y: GROUND_Y - 26,  kind: 'present' },
-    { x: 4859, y: GROUND_Y - 106, kind: 'balloon' },
-    { x: 5010, y: GROUND_Y - 25,  kind: 'cake'    },
-    { x: 5150, y: GROUND_Y - 110, kind: 'balloon' },
-    { x: 5298, y: GROUND_Y - 72,  kind: 'hat'     },
-    { x: 5450, y: GROUND_Y - 26,  kind: 'juice'   },
-    { x: 5600, y: GROUND_Y - 104, kind: 'balloon' },
-    { x: 5745, y: GROUND_Y - 24,  kind: 'candles' },
+    { x: 4750, y: GROUND_Y - 26,  kind: 'present' },
+    { x: 5298, y: GROUND_Y - 56,  kind: 'cake'    },   // sits on the trestle table
+    { x: 5620, y: GROUND_Y - 104, kind: 'balloon' },   // needs a jump
   ];
 
   const GATE_X  = 5820;
@@ -673,7 +659,8 @@
         Sound.collect();
         puff(p.x, py, 8, 'rgba(242,180,65,0.8)');
         const left = partyLeft();
-        float(p.x, py - 14, left === 0 ? 'Party sorted!' : `${8 - left}/8`, '#F0567A');
+        const total = PARTY_DEFS.length;
+        float(p.x, py - 14, left === 0 ? 'Party sorted!' : `${total - left}/${total}`, '#F0567A');
         if (left === 0) Sound.gate();
       }
     }
@@ -748,8 +735,8 @@
     el.winBest.textContent = fmtPrecise(shown);
     el.winStumbles.textContent = String(game.stumbles);
     el.winNote.textContent = isBest
-      ? 'A new personal best. Sixteen kilometres, five meetings, one birthday party and a great many magpies.'
-      : 'She got there. Sixteen kilometres, five meetings, one birthday party and a great many magpies later.';
+      ? 'A new personal best. Sixteen kilometres, a corridor of meetings, one birthday party and a great many magpies.'
+      : 'She got there. Sixteen kilometres, a corridor of meetings, one birthday party and a great many magpies later.';
     show('win');
   }
 
