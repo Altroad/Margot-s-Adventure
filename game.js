@@ -351,6 +351,8 @@
     stumbleT: 0, invulnT: 0,
     holdingPhone: false,
     hairFlow: 0,                 // 0 hanging, 1 streaming out behind her
+    squash: 1,                   // >1 stretched on takeoff, <1 squashed on landing
+    dustT: 0,
   };
 
   const clock = { revealed: false, t: 0, cyprus: null };
@@ -376,6 +378,7 @@
     player.onGround = true; player.facing = 1; player.runPhase = 0;
     player.coyote = 0; player.buffer = 0; player.stumbleT = 0; player.invulnT = 0;
     player.holdingPhone = false; player.hairFlow = 0;
+    player.squash = 1; player.dustT = 0;
 
     magpies = MAGPIE_DEFS.map(d => ({ ...d, t: d.phase, cawed: false }));
     meetings = MEETING_DEFS.map(d => ({ ...d, w: MEETING_W, alive: true, pop: 0 }));
@@ -485,6 +488,7 @@
       player.coyote = 0;
       player.buffer = 0;
       Sound.jump();
+      player.squash = 1.24;               // stretch off the ground
       puff(player.x, player.y - 2, 5, 'rgba(255,255,255,0.7)');
     }
     if (!input.jump && player.vy < -JUMP_CUT) player.vy = -JUMP_CUT;
@@ -511,6 +515,7 @@
     player.x = clamp(player.x, 12, LEVEL_W - 12);
 
     // --- vertical move + resolve
+    const landVy = player.vy;              // impact speed, before it is zeroed
     player.y += player.vy * dt;
     player.onGround = false;
     box = { x: player.x - PW / 2, y: player.y - PH, w: PW, h: PH };
@@ -550,7 +555,28 @@
 
     if (player.onGround && wasAir) {
       Sound.land();
+      // harder landings squash more
+      player.squash = clamp(1 - landVy / 2600, 0.72, 0.97);
       puff(player.x, player.y, 4, 'rgba(255,255,255,0.6)');
+    }
+    player.squash += (1 - player.squash) * Math.min(1, 13 * dt);
+
+    // she kicks up dust at a run
+    if (player.onGround && Math.abs(player.vx) > 125) {
+      player.dustT -= dt;
+      if (player.dustT <= 0) {
+        player.dustT = 0.12;
+        puffs.push({
+          x: player.x - player.facing * 5, y: player.y - 1,
+          vx: -player.facing * (16 + Math.random() * 26),
+          vy: -12 - Math.random() * 20,
+          r: 1.3 + Math.random() * 1.6,
+          life: 0.34 + Math.random() * 0.2, t: 0,
+          color: 'rgba(255,255,255,0.5)',
+        });
+      }
+    } else {
+      player.dustT = 0;
     }
 
     // hair lifts quickly as she gets going and falls back more slowly when she
@@ -764,10 +790,12 @@
     ctx.strokeStyle = bark;
     ctx.lineWidth = 3;
     ctx.stroke();
+    // the canopy sways; the trunk does not
+    const sway = Math.sin(performance.now() * 0.00072 + x * 0.021) * 1.9;
     ctx.fillStyle = leaf;
-    ctx.beginPath(); ctx.ellipse(-14, -82, 17, 12, 0, 0, 6.3); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(13, -88, 19, 13, 0, 0, 6.3); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(0, -96, 21, 14, 0, 0, 6.3); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-14 + sway * 0.7, -82, 17, 12, 0, 0, 6.3); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(13 + sway * 0.9, -88, 19, 13, 0, 0, 6.3); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0 + sway, -96, 21, 14, 0, 0, 6.3); ctx.fill();
     ctx.restore();
   }
 
@@ -818,8 +846,9 @@
     ctx.fillStyle = sunCol;
     ctx.beginPath(); ctx.arc(sunX, sunY, 19, 0, 6.3); ctx.fill();
 
-    // clouds — slow parallax, spaced in their own drifting layer
-    const cpx = cam.x * 0.14;
+    // clouds — slow parallax, plus a drift of their own so the sky still
+    // moves when she is standing still
+    const cpx = cam.x * 0.14 + performance.now() * 0.0022;
     const firstC = Math.floor(cpx / 210) - 1;
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
     for (let i = firstC; i < firstC + 6; i++) {
@@ -1640,10 +1669,11 @@
     const air = !player.onGround;
     const stag = player.stumbleT > 0;
 
-    // shadow
-    ctx.fillStyle = 'rgba(42,36,64,0.2)';
+    // shadow shrinks and fades the higher she is — a cheap read on altitude
+    const airH = clamp((GROUND_Y - player.y) / 95, 0, 1);
+    ctx.fillStyle = `rgba(42,36,64,${0.2 * (1 - airH * 0.62)})`;
     ctx.beginPath();
-    ctx.ellipse(sx, GROUND_Y - 1, 9.5, 3.2, 0, 0, 6.3);
+    ctx.ellipse(sx, GROUND_Y - 1, 9.5 * (1 - airH * 0.4), 3.2 * (1 - airH * 0.4), 0, 0, 6.3);
     ctx.fill();
 
     ctx.save();
@@ -1651,7 +1681,9 @@
 
     if (player.invulnT > 0 && Math.floor(player.invulnT * 14) % 2 === 0) ctx.globalAlpha = 0.45;
     if (stag) ctx.rotate(-0.25 * player.facing);
-    ctx.scale(player.facing, 1);
+    // squash and stretch, pivoted at her feet, roughly preserving volume
+    const sqY = player.squash;
+    ctx.scale(player.facing * (1 + (1 - sqY) * 0.55), sqY);
 
     const bob = moving && !air ? Math.sin(player.runPhase * 2) * 1.3 : 0;
     const swing = air ? 0.5 : (moving ? Math.sin(player.runPhase * 2) : 0);
@@ -1962,6 +1994,36 @@
     ctx.textAlign = 'left';
   }
 
+  // A band of grass at the very bottom, scrolling faster than the world. It
+  // sits below her feet so it never hides anything, but gives the ground depth.
+  function drawForeground() {
+    const px = cam.x * 1.28;
+    const step = 23;
+    const first = Math.floor((px - 30) / step);
+    const base = VIEW_H - 4;
+
+    for (let i = first; i < first + Math.ceil(VIEW_W / step) + 4; i++) {
+      const gx = i * step + hash(i * 1.7) * 16 - px;
+      if (gx < -14 || gx > VIEW_W + 14) continue;
+      // no grass growing out of the office carpet — cull by where the blade
+      // actually sits on screen, not by which segment she happens to be in
+      const here = cam.x + gx;
+      if (here >= SEG.meetings.x0 - 30 && here < SEG.meetings.x1 + 10) continue;
+      const h = 7 + hash(i * 4.3) * 10;
+      const lean = Math.sin(performance.now() * 0.0011 + i * 0.6) * 2.2;
+      // a neutral shadow tone, so it reads as blades over dirt and lawn alike
+      ctx.strokeStyle = i % 3 === 0 ? 'rgba(52,48,34,0.26)' : 'rgba(58,56,42,0.18)';
+      ctx.lineWidth = 1.7 + hash(i * 9.1) * 1.3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(gx, base + 6);
+      ctx.quadraticCurveTo(gx + lean * 0.5, base - h * 0.55, gx + lean, base - h);
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    ctx.lineWidth = 1;
+  }
+
   function render(dt) {
     resize();
     ctx.clearRect(0, 0, VIEW_W, VIEW_H);
@@ -1986,6 +2048,7 @@
     drawMagpies();
     drawMargot();
     drawEffects();
+    drawForeground();
 
     ctx.restore();
 
@@ -2079,6 +2142,15 @@
 
   // ---------------------------------------------------------------- loop
 
+  // Eases toward the target with a rate that does not change with frame rate,
+  // and leads slightly in the direction she is running so more of what is
+  // coming is on screen.
+  function camFollow(raw) {
+    const lead = clamp(player.vx / MAX_SPEED, -1, 1) * 44;
+    const target = clamp(player.x + lead - VIEW_W * 0.42, 0, LEVEL_W - VIEW_W);
+    cam.x += (target - cam.x) * (1 - Math.exp(-5.5 * raw));
+  }
+
   let last = performance.now();
   let acc = 0;
   const DT = 1 / 120;
@@ -2090,9 +2162,10 @@
 
     if (game.phase === 'play' || game.phase === 'finale') {
       acc += raw;
-      let guard = 0;
+      let guard = 0, steps = 0;
       while (acc >= DT && guard++ < 8) {
         acc -= DT;
+        steps++;
         if (game.phase === 'play') {
           game.time += DT;
           updatePlayer(DT);
@@ -2110,16 +2183,18 @@
         }
         updateEffects(DT);
       }
-      input.jumpPressed = false;
+      // Only retire the press once a physics step has actually seen it. A
+      // display faster than the 120Hz step rate (ProMotion, 144Hz monitors)
+      // renders frames that accumulate less than one step, and clearing here
+      // unconditionally swallowed those jumps outright.
+      if (steps > 0) input.jumpPressed = false;
 
-      // camera
-      const targetX = clamp(player.x - VIEW_W * 0.42, 0, LEVEL_W - VIEW_W);
-      cam.x += (targetX - cam.x) * Math.min(1, raw * 8);
+      camFollow(raw);
       syncHud();
     } else {
       input.jumpPressed = false;
       updateEffects(raw);
-      cam.x += (clamp(player.x - VIEW_W * 0.42, 0, LEVEL_W - VIEW_W) - cam.x) * Math.min(1, raw * 8);
+      camFollow(raw);
     }
 
     render(raw);
